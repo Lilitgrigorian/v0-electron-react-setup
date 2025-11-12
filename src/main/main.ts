@@ -25,9 +25,7 @@ function createWindow() {
   const indexPath = path.join(__dirname, "../renderer/index.html")
   mainWindow.loadFile(indexPath)
 
-  if (process.env.DEBUG) {
-    mainWindow.webContents.openDevTools()
-  }
+  mainWindow.webContents.openDevTools()
 
   mainWindow.on("closed", () => {
     mainWindow = null
@@ -56,6 +54,8 @@ function createCommandPaletteWindow() {
   commandPaletteWindow.loadFile(indexPath, { hash: "command-palette" })
   commandPaletteWindow.show()
 
+  commandPaletteWindow.webContents.openDevTools()
+
   commandPaletteWindow.on("closed", () => {
     commandPaletteWindow = null
   })
@@ -65,6 +65,12 @@ app.on("ready", async () => {
   registerTranslatorIPC()
 
   createWindow()
+
+  globalShortcut.register("CommandOrControl+Option+I", () => {
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.toggleDevTools()
+    }
+  })
 
   globalShortcut.register("Option+Shift+N", () => {
     createCommandPaletteWindow()
