@@ -1,12 +1,13 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, clipboard } from "electron";
+import { app, BrowserWindow, ipcMain, clipboard, globalShortcut } from "electron";
 import path from "path";
+import { registerTranslatorIPC } from "./text-translator/translator.js";
 import { fileURLToPath } from "url";
-import Store from "electron-store";
+// ESM replacement for __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 let mainWindow = null;
 let commandPaletteWindow = null;
-const store = new Store();
+let store; // Electron Store instance
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
@@ -17,11 +18,8 @@ function createWindow() {
             contextIsolation: true,
         },
     });
-    const indexPath = path.join(__dirname, "../renderer/index.html");
-    mainWindow.loadFile(indexPath);
-    if (process.env.DEBUG) {
-        mainWindow.webContents.openDevTools();
-    }
+    mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
+    mainWindow.webContents.openDevTools();
     mainWindow.on("closed", () => {
         mainWindow = null;
     });
@@ -41,63 +39,39 @@ function createCommandPaletteWindow() {
         },
         show: false,
     });
-    const indexPath = path.join(__dirname, "../renderer/index.html");
-    const url = `file://${indexPath}?page=command-palette`;
-    commandPaletteWindow.loadFile(indexPath, { hash: "command-palette" });
+    commandPaletteWindow.loadFile(path.join(__dirname, "../renderer/index.html"), { hash: "command-palette" });
     commandPaletteWindow.show();
+    commandPaletteWindow.webContents.openDevTools();
     commandPaletteWindow.on("closed", () => {
         commandPaletteWindow = null;
     });
 }
 app.on("ready", async () => {
+    // ✅ Dynamically import Electron Store
+    const { default: Store } = await import("electron-store");
+    store = new Store();
+    // ✅ Register translator IPC
+    await registerTranslatorIPC(store);
     createWindow();
+    // Global shortcuts
+    globalShortcut.register("CommandOrControl+Option+I", () => {
+        mainWindow?.webContents.toggleDevTools();
+    });
     globalShortcut.register("Option+Shift+N", () => {
         createCommandPaletteWindow();
     });
 });
 app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") {
+    if (process.platform !== "darwin")
         app.quit();
-    }
 });
 app.on("activate", () => {
-    if (mainWindow === null) {
+    if (!mainWindow)
         createWindow();
-    }
 });
-ipcMain.handle("clipboard:read", async () => {
-    return clipboard.readText();
-});
-ipcMain.handle("clipboard:write", async (event, text) => {
+// Clipboard IPC
+ipcMain.handle("clipboard:read", () => clipboard.readText());
+ipcMain.handle("clipboard:write", (_event, text) => {
     clipboard.writeText(text);
-});
-ipcMain.handle("store:get", (event, key) => {
-    if (typeof store.get === "function") {
-        return store.get(key);
-    }
-    else if (store instanceof Map) {
-        return store.get(key);
-    }
-    else if (typeof store === "object" && Object.prototype.hasOwnProperty.call(store, key)) {
-        return store[key];
-    }
-    else {
-        throw new Error("store.get is not defined");
-    }
-});
-ipcMain.handle("store:set", (event, key, value) => {
-    if ("set" in store && typeof store.set === "function") {
-        store.set(key, value);
-    }
-    else if (store instanceof Map) {
-        store.set(key, value);
-    }
-    else if (typeof store === "object") {
-        // Using as any to bypass TS index signature error for dynamic keys
-        store[key] = value;
-    }
-    else {
-        throw new Error("store.set is not defined");
-    }
 });
 //# sourceMappingURL=main.js.map
