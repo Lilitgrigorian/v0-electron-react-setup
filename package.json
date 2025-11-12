@@ -12,10 +12,9 @@
   "author": "Your Name",
   "type": "module",
   "main": "dist/main/main.js",
-
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc && electron .",
+    "build": "tsc && cp src/renderer/index.html dist/renderer/",
+    "dev": "npm run build && electron .",
     "dist": "npm run build && electron-builder",
     "dist:mac": "npm run build && electron-builder --mac",
     "pack": "npm run build && electron-builder --dir",
@@ -36,8 +35,8 @@
     "next-themes": "latest",
     "node-fetch": "3.3.2",
     "path": "latest",
-    "react": "^18",
-    "react-dom": "18",
+    "react": "latest",
+    "react-dom": "latest",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "latest",
@@ -52,7 +51,7 @@
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
     "postcss": "^8.5",
-    "tailwindcss": "4.1.17",
+    "tailwindcss": "^4.1.9",
     "typescript": "^5"
   },
   "build": {

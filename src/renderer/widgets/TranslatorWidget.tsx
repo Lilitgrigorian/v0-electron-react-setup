@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Copy, ChevronDown, Loader2 } from "lucide-react"
+import { Copy, ChevronDown, Loader2, Globe, X } from "lucide-react"
 
 const LANGUAGE_CODES: { [key: string]: string } = {
   English: "en",
@@ -26,6 +26,7 @@ export default function TranslatorWidget() {
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     const loadClipboardText = async () => {
@@ -40,7 +41,6 @@ export default function TranslatorWidget() {
     loadClipboardText()
   }, [])
 
-  // Load default language preference
   useEffect(() => {
     const loadDefaultLanguage = async () => {
       try {
@@ -58,6 +58,7 @@ export default function TranslatorWidget() {
     if (!inputText.trim()) return
 
     setLoading(true)
+    setError("")
     try {
       const result = await window.electron.invoke("translate-text", {
         text: inputText,
@@ -67,10 +68,12 @@ export default function TranslatorWidget() {
       if (result.success) {
         setOutputText(result.text)
       } else {
-        setOutputText(`Error: ${result.error}`)
+        setError(result.error || "Failed to translate text")
+        setOutputText("")
       }
     } catch (error) {
-      setOutputText(`Error: ${(error as Error).message}`)
+      setError((error as Error).message)
+      setOutputText("")
     } finally {
       setLoading(false)
     }
@@ -95,80 +98,111 @@ export default function TranslatorWidget() {
   const selectedLanguageName = LANGUAGE_NAMES.find((name) => LANGUAGE_CODES[name] === targetLanguage) || "English"
 
   return (
-    <div className="h-screen bg-white p-6 flex flex-col gap-4">
-      <h1 className="text-2xl font-bold text-gray-900">Translator</h1>
+    <div className="h-screen bg-white p-8 flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Globe className="w-8 h-8 text-blue-500" />
+          <h1 className="text-2xl font-bold text-gray-900">Translate Text</h1>
+        </div>
+        <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+          <X className="w-6 h-6 text-gray-500" />
+        </button>
+      </div>
 
-      <div className="flex-1 flex flex-col gap-2">
-        <label className="text-sm font-medium text-gray-700">Text to translate</label>
+      {/* Input Section */}
+      <div className="flex flex-col gap-3">
+        <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Text to translate</label>
         <textarea
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           placeholder="Enter text or paste from clipboard..."
-          className="flex-1 p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono text-sm"
+          className="w-full h-24 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-normal text-gray-900 placeholder-gray-400"
         />
       </div>
 
-      <div className="flex items-end gap-3">
-        <div className="flex-1">
-          <label className="text-sm font-medium text-gray-700 block mb-2">Target language</label>
-          <div className="relative">
-            <button
-              onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between"
-            >
-              <span className="text-gray-900">{selectedLanguageName}</span>
-              <ChevronDown className="w-5 h-5 text-gray-400" />
-            </button>
+      {/* Language Selection */}
+      <div className="flex flex-col gap-3">
+        <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Target language</label>
+        <div className="relative">
+          <button
+            onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between transition"
+          >
+            <span className="text-gray-900 font-medium">{selectedLanguageName}</span>
+            <ChevronDown
+              className={`w-5 h-5 text-gray-400 transition transform ${showLanguageDropdown ? "rotate-180" : ""}`}
+            />
+          </button>
 
-            {showLanguageDropdown && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                {LANGUAGE_NAMES.map((name) => (
-                  <button
-                    key={name}
-                    onClick={() => handleLanguageSelect(name)}
-                    className={`w-full text-left px-4 py-2 hover:bg-gray-100 ${
-                      selectedLanguageName === name ? "bg-blue-50 text-blue-900" : "text-gray-900"
-                    }`}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <button
-          onClick={handleTranslate}
-          disabled={loading || !inputText.trim()}
-          className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Translating...
-            </>
-          ) : (
-            "Translate"
+          {showLanguageDropdown && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+              {LANGUAGE_NAMES.map((name) => (
+                <button
+                  key={name}
+                  onClick={() => handleLanguageSelect(name)}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition ${
+                    selectedLanguageName === name ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-900"
+                  }`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
           )}
-        </button>
+        </div>
       </div>
 
-      {outputText && (
-        <div className="flex-1 flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">Translation</label>
-          <div className="flex-1 p-4 border border-gray-300 rounded-lg bg-gray-50 overflow-y-auto font-mono text-sm text-gray-900">
+      {/* Translation Result Section */}
+      <div className="flex flex-col gap-3">
+        <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Translation</label>
+        {error ? (
+          <div className="w-full h-24 p-4 border border-red-300 rounded-xl bg-red-50 flex items-center justify-center">
+            <div className="flex items-center gap-2">
+              <X className="w-5 h-5 text-red-500" />
+              <span className="text-red-700 font-medium">{error}</span>
+            </div>
+          </div>
+        ) : outputText ? (
+          <div className="w-full h-24 p-4 border border-gray-300 rounded-xl bg-gray-50 overflow-y-auto font-normal text-gray-900">
             {outputText}
           </div>
-          <button
-            onClick={handleCopy}
-            className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 flex items-center justify-center gap-2 font-medium"
-          >
-            <Copy className="w-4 h-4" />
-            {copied ? "Copied!" : "Copy translation"}
-          </button>
-        </div>
+        ) : (
+          <div className="w-full h-24 p-4 border border-gray-300 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
+            Translation will appear here
+          </div>
+        )}
+      </div>
+
+      {/* Translate Button */}
+      <button
+        onClick={handleTranslate}
+        disabled={loading || !inputText.trim()}
+        className="w-full px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 flex items-center justify-center gap-2 font-semibold transition"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Translating...
+          </>
+        ) : (
+          "Translate"
+        )}
+      </button>
+
+      {/* Copy Button */}
+      {outputText && (
+        <button
+          onClick={handleCopy}
+          className="w-full px-6 py-3 bg-gray-300 text-gray-900 rounded-xl hover:bg-gray-400 flex items-center justify-center gap-2 font-semibold transition"
+        >
+          <Copy className="w-5 h-5" />
+          {copied ? "Copied!" : "Copy Translation"}
+        </button>
       )}
+
+      {/* Help text */}
+      {error && <p className="text-sm text-gray-600 text-center">Please check your API key and try again</p>}
     </div>
   )
 }
