@@ -1,0 +1,1 @@
+{"version":3,"file":"ActionResult.d.ts","sourceRoot":"","sources":["../../../src/renderer/components/ActionResult.tsx"],"names":[],"mappings":"AAGA,UAAU,iBAAiB;IACzB,IAAI,EAAE,MAAM,CAAA;IACZ,WAAW,EAAE,MAAM,CAAA;CACpB;AAED,MAAM,CAAC,OAAO,UAAU,YAAY,CAAC,EAAE,IAAI,EAAE,WAAW,EAAE,EAAE,iBAAiB,2CAkB5E"}

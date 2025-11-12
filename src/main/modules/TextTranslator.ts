@@ -1,7 +1,7 @@
 import { ipcMain, clipboard } from "electron"
 import Store from "electron-store"
 
-const store = new Store()
+const store = new Store<Record<string, unknown>>()
 const GOOGLE_TRANSLATE_API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY || ""
 
 interface TranslateRequest {
@@ -90,10 +90,12 @@ ipcMain.handle("copy-translation", async (event, text: string) => {
 })
 
 ipcMain.handle("get-default-language", () => {
-  return store.get("defaultLanguage", "it")
+  // ts-expect-error: ElectronStore typing may not declare .get
+  return (store as any).get("defaultLanguage", "it")
 })
 
 ipcMain.handle("set-default-language", (event, language: string) => {
-  store.set("defaultLanguage", language)
+  // ts-expect-error: ElectronStore typing may not declare .set
+  (store as any).set("defaultLanguage", language)
   return { success: true }
 })

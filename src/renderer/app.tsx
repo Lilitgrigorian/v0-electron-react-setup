@@ -1,6 +1,6 @@
 "use client"
 import { useRouter } from "next/router"
-import CommandPalette from "./components/CommandPaletteV2"
+import CommandPalette from "./components/CommandPalette"
 import TranslatorWidget from "./widgets/TranslatorWidget"
 
 export default function App() {

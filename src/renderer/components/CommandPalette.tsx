@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Search, ArrowRight } from "lucide-react"
-import type { PaletteItem, Widget, Action } from "../types"
+import type { Widget, Action, PaletteItem } from "../types"
+import { getWidgets, getQuickActions } from "../config/palette-config"
 import InlineResult from "./InlineResult"
+import WidgetRenderer from "./WidgetRenderer"
 
 export default function CommandPalette() {
   const [search, setSearch] = useState("")
@@ -11,57 +13,47 @@ export default function CommandPalette() {
   const [inlineResult, setInlineResult] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [widgets, setWidgets] = useState<Widget[]>([])
-  const [quickActions, setQuickActions] = useState<Action[]>([])
+  const [actions, setActions] = useState<Action[]>([])
+  const [openWidget, setOpenWidget] = useState<string | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const loadItems = async () => {
-      try {
-        const [w, a] = await Promise.all([
-          window.electron.invoke("get-widgets"),
-          window.electron.invoke("get-quick-actions"),
-        ])
-        setWidgets(w || [])
-        setQuickActions(a || [])
-      } catch (error) {
-        console.error("[v0] Error loading items:", error)
-      }
+    const loadData = async () => {
+      const [w, a] = await Promise.all([getWidgets(), getQuickActions()])
+      setWidgets(w)
+      setActions(a)
     }
-    loadItems()
+    loadData()
   }, [])
 
-  // Flatten widgets into items
   const suggestedItems: PaletteItem[] = widgets.slice(0, 3).map((w) => ({
     id: w.id,
     label: w.label,
     icon: w.icon,
-    type: "suggested" as const,
+    type: "suggested",
   }))
 
   const widgetItems: PaletteItem[] = widgets.map((w) => ({
     id: w.id,
     label: w.label,
     icon: w.icon,
-    type: "widget" as const,
+    type: "widget",
   }))
 
-  const actionItems: PaletteItem[] = quickActions.map((a) => ({
+  const actionItems: PaletteItem[] = actions.map((a) => ({
     ...a,
-    type: "action" as const,
+    type: "action",
+    icon: a.icon || "→",
   }))
 
   const allItems = [...suggestedItems, ...widgetItems, ...actionItems]
 
-  // Filter items based on search
   const filteredSuggested = suggestedItems.filter((item) => item.label.toLowerCase().includes(search.toLowerCase()))
-
   const filteredWidgets = widgetItems.filter(
     (item) => item.label.toLowerCase().includes(search.toLowerCase()) && !suggestedItems.find((s) => s.id === item.id),
   )
-
   const filteredActions = actionItems.filter((item) => item.label.toLowerCase().includes(search.toLowerCase()))
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") {
@@ -80,42 +72,37 @@ export default function CommandPalette() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedIndex]) // Removed allItems from dependency array
+  }, [selectedIndex])
 
-  // Focus search on mount
   useEffect(() => {
     searchInputRef.current?.focus()
   }, [])
 
   const handleSelect = async (item: PaletteItem) => {
+    setInlineResult(null)
     if (item.type === "action") {
       setLoading(true)
       try {
-        const result = await window.electron.invoke("execute-action", {
-          actionId: item.id,
-        })
-        setInlineResult(result?.text || "")
+        const result = await window.electron.invoke("execute-action", { actionId: item.id })
+        setInlineResult(result.text || "")
       } catch (error) {
-        console.error("[v0] Error executing action:", error)
+        console.error("Error executing action:", error)
       } finally {
         setLoading(false)
       }
     } else if (item.type === "widget") {
-      window.electron.send("open-widget", { widgetId: item.id })
-      window.close()
+      setOpenWidget(item.id)
     }
   }
 
   const renderSection = (title: string, items: PaletteItem[]) => {
     if (items.length === 0) return null
-
     return (
       <div key={title} className="mb-4">
         <h3 className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</h3>
         {items.map((item) => {
           const globalIndex = allItems.indexOf(item)
           const isSelected = globalIndex === selectedIndex
-
           return (
             <div
               key={item.id}
@@ -174,6 +161,7 @@ export default function CommandPalette() {
       </div>
 
       {inlineResult && <InlineResult result={inlineResult} loading={loading} />}
+      {openWidget && <WidgetRenderer widgetId={openWidget} onClose={() => setOpenWidget(null)} />}
     </div>
   )
 }

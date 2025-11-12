@@ -1,0 +1,1 @@
+{"version":3,"file":"WidgetRenderer.d.ts","sourceRoot":"","sources":["../../../src/renderer/components/WidgetRenderer.tsx"],"names":[],"mappings":"AAMA,UAAU,mBAAmB;IAC3B,QAAQ,EAAE,MAAM,CAAA;IAChB,OAAO,EAAE,MAAM,IAAI,CAAA;CACpB;AAUD,MAAM,CAAC,OAAO,UAAU,cAAc,CAAC,EAAE,QAAQ,EAAE,OAAO,EAAE,EAAE,mBAAmB,2CAwBhF"}

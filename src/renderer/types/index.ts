@@ -1,3 +1,5 @@
+// src/renderer/types/index.ts
+
 export interface Action {
   id: string
   label: string

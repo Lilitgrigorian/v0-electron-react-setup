@@ -1,3 +1,4 @@
+// types/electron.d.ts
 declare global {
   interface Window {
     electron: {

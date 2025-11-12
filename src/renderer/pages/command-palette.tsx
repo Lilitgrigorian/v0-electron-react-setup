@@ -1,4 +1,4 @@
-import CommandPalette from "../components/CommandPaletteV2"
+import CommandPalette from "../components/CommandPalette"
 
 export default function CommandPalettePage() {
   return <CommandPalette />

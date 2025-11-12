@@ -11,7 +11,7 @@ export const useWidgets = () => {
     setLoading(true)
     try {
       // Fetch widgets from main process
-      const result = await window.electron.ipcRenderer.invoke("get-widgets")
+      const result = await window.electron.invoke("get-widgets")
       setWidgets(result)
     } catch (error) {
       console.error("Failed to load widgets:", error)

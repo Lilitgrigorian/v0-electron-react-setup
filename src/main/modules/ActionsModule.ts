@@ -23,7 +23,7 @@ ipcMain.handle("execute-action", async (event, request: ActionExecutionRequest) 
     // Handle translation actions
     if (actionId.startsWith("translate-")) {
       const lang = actionId.replace("translate-", "")
-      const result = await window.electron.ipcRenderer.invoke("translate-text", {
+      const result = await window.electron.invoke("translate-text", {
         text,
         targetLanguage: LANGUAGE_MAPPING[lang] || lang,
       })
