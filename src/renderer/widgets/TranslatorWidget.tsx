@@ -27,14 +27,13 @@ export default function TranslatorWidget() {
   const [copied, setCopied] = useState(false)
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false)
 
-  // Load clipboard text on mount
   useEffect(() => {
     const loadClipboardText = async () => {
       try {
-        const text = await navigator.clipboard.readText()
+        const text = await window.electron.clipboard.read()
         setInputText(text)
       } catch (error) {
-        console.error("Failed to read clipboard:", error)
+        console.error("[v0] Failed to read clipboard:", error)
       }
     }
 
@@ -45,10 +44,10 @@ export default function TranslatorWidget() {
   useEffect(() => {
     const loadDefaultLanguage = async () => {
       try {
-        const lang = await window.electron.ipcRenderer.invoke("get-default-language")
-        setTargetLanguage(lang)
+        const lang = await window.electron.store.get("defaultLanguage")
+        if (lang) setTargetLanguage(lang)
       } catch (error) {
-        console.error("Failed to load default language:", error)
+        console.error("[v0] Failed to load default language:", error)
       }
     }
 
@@ -60,7 +59,7 @@ export default function TranslatorWidget() {
 
     setLoading(true)
     try {
-      const result = await window.electron.ipcRenderer.invoke("translate-text", {
+      const result = await window.electron.invoke("translate-text", {
         text: inputText,
         targetLanguage,
       })
@@ -79,20 +78,18 @@ export default function TranslatorWidget() {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(outputText)
+      await window.electron.clipboard.write(outputText)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
-      console.error("Failed to copy:", error)
+      console.error("[v0] Failed to copy:", error)
     }
   }
 
   const handleLanguageSelect = (lang: string) => {
     setTargetLanguage(LANGUAGE_CODES[lang])
     setShowLanguageDropdown(false)
-
-    // Save preference
-    window.electron.ipcRenderer.invoke("set-default-language", LANGUAGE_CODES[lang])
+    window.electron.store.set("defaultLanguage", LANGUAGE_CODES[lang])
   }
 
   const selectedLanguageName = LANGUAGE_NAMES.find((name) => LANGUAGE_CODES[name] === targetLanguage) || "English"
@@ -101,7 +98,6 @@ export default function TranslatorWidget() {
     <div className="h-screen bg-white p-6 flex flex-col gap-4">
       <h1 className="text-2xl font-bold text-gray-900">Translator</h1>
 
-      {/* Input Section */}
       <div className="flex-1 flex flex-col gap-2">
         <label className="text-sm font-medium text-gray-700">Text to translate</label>
         <textarea
@@ -112,7 +108,6 @@ export default function TranslatorWidget() {
         />
       </div>
 
-      {/* Target Language Selector */}
       <div className="flex items-end gap-3">
         <div className="flex-1">
           <label className="text-sm font-medium text-gray-700 block mb-2">Target language</label>
@@ -159,7 +154,6 @@ export default function TranslatorWidget() {
         </button>
       </div>
 
-      {/* Output Section */}
       {outputText && (
         <div className="flex-1 flex flex-col gap-2">
           <label className="text-sm font-medium text-gray-700">Translation</label>

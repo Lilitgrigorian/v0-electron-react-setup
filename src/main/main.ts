@@ -1,24 +1,32 @@
-import { app, BrowserWindow, globalShortcut } from "electron"
+import { app, BrowserWindow, globalShortcut, ipcMain, clipboard } from "electron"
 import path from "path"
-import isDev from "electron-is-dev"
+import { fileURLToPath } from "url"
+import Store from "electron-store"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 let mainWindow: BrowserWindow | null = null
 let commandPaletteWindow: BrowserWindow | null = null
+const store = new Store()
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, "../preload.js"),
+      preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
     },
   })
 
-  const startUrl = isDev ? "http://localhost:3000" : `file://${path.join(__dirname, "../renderer/index.html")}`
+  const indexPath = path.join(__dirname, "../renderer/index.html")
+  mainWindow.loadFile(indexPath)
 
-  mainWindow.loadURL(startUrl)
+  if (process.env.DEBUG) {
+    mainWindow.webContents.openDevTools()
+  }
 
   mainWindow.on("closed", () => {
     mainWindow = null
@@ -35,18 +43,16 @@ function createCommandPaletteWindow() {
     width: 500,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, "../preload.js"),
+      preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
     },
     show: false,
   })
 
-  const startUrl = isDev
-    ? "http://localhost:3000/command-palette"
-    : `file://${path.join(__dirname, "../renderer/index.html")}?page=command-palette`
-
-  commandPaletteWindow.loadURL(startUrl)
+  const indexPath = path.join(__dirname, "../renderer/index.html")
+  const url = `file://${indexPath}?page=command-palette`
+  commandPaletteWindow.loadFile(indexPath, { hash: "command-palette" })
   commandPaletteWindow.show()
 
   commandPaletteWindow.on("closed", () => {
@@ -54,10 +60,9 @@ function createCommandPaletteWindow() {
   })
 }
 
-app.on("ready", () => {
+app.on("ready", async () => {
   createWindow()
 
-  // Register global shortcut for Command Palette (Option + Shift + N on macOS)
   globalShortcut.register("Option+Shift+N", () => {
     createCommandPaletteWindow()
   })
@@ -75,6 +80,18 @@ app.on("activate", () => {
   }
 })
 
-// IPC Handlers will be registered here
-import("./modules/TextTranslator")
-import("./modules/ClipboardModule")
+ipcMain.handle("clipboard:read", async () => {
+  return clipboard.readText()
+})
+
+ipcMain.handle("clipboard:write", async (event, text: string) => {
+  clipboard.writeText(text)
+})
+
+ipcMain.handle("store:get", (event, key: string) => {
+  return store.get(key)
+})
+
+ipcMain.handle("store:set", (event, key: string, value: any) => {
+  store.set(key, value)
+})

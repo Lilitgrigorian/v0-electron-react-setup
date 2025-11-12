@@ -1,5 +1,4 @@
 import { ipcMain, clipboard } from "electron"
-import fetch from "node-fetch"
 import Store from "electron-store"
 
 const store = new Store()
@@ -64,7 +63,6 @@ ipcMain.handle("execute-action", async (event, { actionId }: { actionId: string 
   }
 })
 
-// Helper function to extract language code from action ID
 function getLanguageCodeFromActionId(actionId: string): string | null {
   const mapping: { [key: string]: string } = {
     "translate-en": "en",
@@ -91,7 +89,6 @@ ipcMain.handle("copy-translation", async (event, text: string) => {
   }
 })
 
-// Store/retrieve default language preference
 ipcMain.handle("get-default-language", () => {
   return store.get("defaultLanguage", "it")
 })

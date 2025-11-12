@@ -18,11 +18,11 @@ export default function InlineResult({ result, loading }: InlineResultProps) {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(displayResult)
+      await window.electron.clipboard.write(displayResult)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
-      console.error("Failed to copy:", error)
+      console.error("[v0] Failed to copy:", error)
     }
   }
 
@@ -31,11 +31,11 @@ export default function InlineResult({ result, loading }: InlineResultProps) {
       {loading ? (
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-          <p className="text-sm text-gray-500">Translating...</p>
+          <p className="text-sm text-gray-500">Processing...</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm p-5 w-full border border-gray-100">
-          <p className="text-gray-500 text-xs font-semibold mb-3 uppercase tracking-wide opacity-75">Translation</p>
+          <p className="text-gray-500 text-xs font-semibold mb-3 uppercase tracking-wide opacity-75">Result</p>
           <p className="text-gray-900 font-medium text-lg break-words text-center mb-4 leading-relaxed">
             {displayResult}
           </p>
