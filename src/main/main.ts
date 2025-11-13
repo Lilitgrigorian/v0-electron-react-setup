@@ -1,18 +1,17 @@
 import { app, BrowserWindow, ipcMain, clipboard, globalShortcut } from "electron";
 import path from "path";
-import { registerTranslatorIPC } from "./text-translator/translator.js";
+import { TextTranslator } from "./text-translator/TextTranslator.js";
 import { fileURLToPath } from "url";
+import Store from "electron-store";
 
-// ESM replacement for __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 let mainWindow: BrowserWindow | null = null;
-let commandPaletteWindow: BrowserWindow | null = null;
-let store: any; // Electron Store instance
+let textTranslator: TextTranslator;
+let store: Store;
 
-function createWindow(): void {
+function createMainWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -31,41 +30,12 @@ function createWindow(): void {
   });
 }
 
-function createCommandPaletteWindow(): void {
-  if (commandPaletteWindow) {
-    commandPaletteWindow.focus();
-    return;
-  }
-
-  commandPaletteWindow = new BrowserWindow({
-    width: 500,
-    height: 600,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-    show: false,
-  });
-
-  commandPaletteWindow.loadFile(path.join(__dirname, "../renderer/index.html"), { hash: "command-palette" });
-  commandPaletteWindow.show();
-  commandPaletteWindow.webContents.openDevTools();
-
-  commandPaletteWindow.on("closed", () => {
-    commandPaletteWindow = null;
-  });
-}
-
 app.on("ready", async () => {
-  // ✅ Dynamically import Electron Store
-  const { default: Store } = await import("electron-store");
-  store = new Store<Record<string, unknown>>();
+  store = new Store();
+  textTranslator = new TextTranslator();
+  textTranslator.initialize();
 
-  // ✅ Register translator IPC
-  await registerTranslatorIPC(store);
-
-  createWindow();
+  createMainWindow();
 
   // Global shortcuts
   globalShortcut.register("CommandOrControl+Option+I", () => {
@@ -73,7 +43,8 @@ app.on("ready", async () => {
   });
 
   globalShortcut.register("Option+Shift+N", () => {
-    createCommandPaletteWindow();
+    const selectedText = clipboard.readText();
+    textTranslator.show(selectedText);
   });
 });
 
@@ -82,10 +53,9 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (!mainWindow) createWindow();
+  if (!mainWindow) createMainWindow();
 });
 
-// Clipboard IPC
 ipcMain.handle("clipboard:read", () => clipboard.readText());
 ipcMain.handle("clipboard:write", (_event, text: string) => {
   clipboard.writeText(text);
